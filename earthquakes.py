@@ -4,6 +4,8 @@
 # This is external library that you may need to install first.
 import requests
 import json
+import matplotlib.pyplot as plot
+from datetime import date
 
 def get_data():
     # With requests, we can ask the web service for the data.
@@ -70,18 +72,27 @@ def get_location(earthquake):
     # There are three coordinates, but we don't care about the third (altitude)
     return earthquake['geometry']['coordinates'][:2]
 
+def get_year(earthquake):
+    """Retrieve the year of an earthquake item."""
+    time = date.fromtimestamp(earthquake['properties']['time'] / 1000) # convert milliseconds to seconds
+    return time.year
 
 def get_maximum(data):
     """Get the magnitude and location of the strongest earthquake in the data."""
     max = 0
-    location = 0 
+    max_list = []
+    location = []
 
+    # only accounted for one earthquake
     for i in data['features']:
         if get_magnitude(i) > max:
             max = get_magnitude(i)
-            location = get_location(i)
-            
-    return max, location
+            max_list.append(get_magnitude(i))
+            location.append(get_location(i))
+    
+    # taking the max from the array 
+
+    return max_list, location
 
 
 # With all the above functions defined, we can now call them and get the result
@@ -89,3 +100,49 @@ data = get_data()
 print(f"Loaded {count_earthquakes(data)}")
 max_magnitude, max_location = get_maximum(data)
 print(f"The strongest earthquake was at {max_location} with magnitude {max_magnitude}")
+
+
+
+# plot of frequency of earthquakes per year 
+years = {}
+for i in data['features']:
+    year = get_year(i)
+    if year in years:
+        years[year] += 1
+    else:
+        years[year] = 1
+x = list(years.keys())
+y = list(years.values())
+plot.bar(x, y)
+plot.xlabel("Year")
+plot.ylabel("Frequency")
+plot.title("Frequency of Earthquakes per Year")
+plot.show()
+
+
+# plot of average magnitude of earthquakes per year 
+
+# use total magnitude / count_earthquakes() within a year
+
+years = {}
+
+for i in data['features']:
+    year = get_year(i)
+    if year in years:
+        years[year]['count'] += 1
+        years[year]['total_magnitude'] += get_magnitude(i)
+    else:
+        years[year] = {'count': 1, 'total_magnitude': get_magnitude(i)}
+
+x = []
+y = []
+for year in years:
+    x.append(year)
+    y.append(years[year]['total_magnitude'] / years[year]['count'])
+
+plot.bar(x, y)
+plot.xlabel("Year")
+plot.ylabel("Average Magnitude")
+plot.title("Average magnitude of Earthquakes per Year")
+plot.show()
+
